@@ -1,0 +1,13 @@
+rawdata-dir: data
+sample-file: config/samples.tsv
+# adapter.fa and primer sequences needed by bbduk during QC and trimming
+adapter-file: resources/adapters.fa
+primer: GAYGAVTGGGAYTWYGACGG,GGYTCVTARTCCATRCA
+  
+MARKER:
+  # marker reference DB, here for xoxF5
+  ref_db: resources/xoxF5_db.fa
+ 
+Fastq:
+  suffix_R1: R1
+  suffix_R2: R2

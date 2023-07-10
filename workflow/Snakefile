@@ -1,0 +1,71 @@
+###############################################################################
+# @author:      Carl-Eric Wegner
+# @affiliation: Küsel Lab - Aquatic Geomicrobiology
+#              Friedrich Schiller University of Jena
+#
+#              carl-eric.wegner@uni-jena.de
+#              https://github.com/wegnerce
+#              https://www.exploringmicrobes.science
+###############################################################################
+
+###############################################################################
+# needed packages
+###############################################################################
+import pandas as pd
+import os
+
+###############################################################################
+# link to config file
+###############################################################################
+configfile: "config/config.yaml"
+
+###############################################################################
+# needed resources 
+###############################################################################
+ADAPTER = config["adapter-file"]
+PRIMER  = config["primer"]
+REF_DB  = config["MARKER"]["ref_db"]
+
+###############################################################################
+# relevant parameters input files
+###############################################################################
+r1_suffix = config["Fastq"]["suffix_R1"]
+r2_suffix = config["Fastq"]["suffix_R2"]
+PAIRS = [r1_suffix, r2_suffix]
+
+###############################################################################
+# read sample names from samples.tsv
+###############################################################################
+SAMPLES = pd.read_table(config["sample-file"], header=0, sep="\t", index_col=0)
+raw_data_dir = config["rawdata-dir"]
+
+###############################################################################
+rule all:
+    input:
+        # vsearch taxonomy
+        "results/06_TAXONOMY/sintax_clean.txt",
+        "results/06_TAXONOMY/sintax.txt",
+        # vsearch otu tables
+        "results/05_OTU_CLUSTERING/otutab.txt",
+        # vsearch otu clustering
+        "results/05_OTU_CLUSTERING/otus.fasta",
+        # vsearch unique
+        "results/04_UNIQUE/unique.fasta",
+        # vsearch primer stripped and quality filtered
+        "results/03_STRIPPED_FILTERED/stripped_filtered.fasta",
+        # vsearch merged --> pooled
+        "results/02_MERGED/all_merged.fastq",
+        # vsearch merged
+        expand("results/02_MERGED/{sample}_merged.fastq",
+               sample=SAMPLES.index),
+        # QC before and after adapter removal and trimming
+        expand("logs/fastqc/raw/{sample}_{pair}_fastqc.html",
+               sample=SAMPLES.index, pair=PAIRS),
+        expand("logs/fastqc/trimmed/{sample}_trimmed_{pair}_fastqc.html",
+               sample=SAMPLES.index, pair=PAIRS),
+
+###############################################################################
+# needed rules
+###############################################################################
+include: "rules/qc.smk"
+include: "rules/vsearch.smk"
