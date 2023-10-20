@@ -1,8 +1,8 @@
 rawdata-dir: data
 sample-file: config/samples.tsv
-# adapter.fa and primer sequences needed by bbduk during QC and trimming
+# adapter.fa needed by bbduk during QC and trimming
+# standard adapters.fa shipped with bbmap
 adapter-file: resources/adapters.fa
-primer: GAYGAVTGGGAYTWYGACGG,GGYTCVTARTCCATRCA
   
 MARKER:
   # marker reference DB, here for xoxF5
@@ -11,3 +11,9 @@ MARKER:
 Fastq:
   suffix_R1: R1
   suffix_R2: R2
+
+EXTRA:
+  # defined settings for individual tools
+  bbduk: "ktrim=r mink=10 hdist=1"
+  merge: "--fastq_truncqual 20 --fastq_maxee 2 --fastq_maxdiffpct 10"
+  filtering: "--fastq_stripleft 20 --fastq_stripright 17 --fastq_maxee 1 --fastq_maxlen 400 --fastq_minlen 300"
