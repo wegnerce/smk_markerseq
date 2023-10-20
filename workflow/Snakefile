@@ -20,10 +20,9 @@ import os
 configfile: "config/config.yaml"
 
 ###############################################################################
-# needed resources 
+# needed resources
 ###############################################################################
 ADAPTER = config["adapter-file"]
-PRIMER  = config["primer"]
 REF_DB  = config["MARKER"]["ref_db"]
 
 ###############################################################################
@@ -34,6 +33,13 @@ r2_suffix = config["Fastq"]["suffix_R2"]
 PAIRS = [r1_suffix, r2_suffix]
 
 ###############################################################################
+# extra parameters used tools
+###############################################################################
+BBDUK     = config["EXTRA"]["bbduk"]
+MERGE     = config["EXTRA"]["merge"]
+FILTERING = config["EXTRA"]["filtering"]
+
+###############################################################################
 # read sample names from samples.tsv
 ###############################################################################
 SAMPLES = pd.read_table(config["sample-file"], header=0, sep="\t", index_col=0)
@@ -42,27 +48,26 @@ raw_data_dir = config["rawdata-dir"]
 ###############################################################################
 rule all:
     input:
-        # vsearch taxonomy
+        # 6 | Taxonomic assignment with vsearch and sintax
         "results/06_TAXONOMY/sintax_clean.txt",
         "results/06_TAXONOMY/sintax.txt",
-        # vsearch otu tables
+        # 5 | OTU clustering + OTU table generation
         "results/05_OTU_CLUSTERING/otutab.txt",
-        # vsearch otu clustering
         "results/05_OTU_CLUSTERING/otus.fasta",
-        # vsearch unique
+        # 4 | Dereplication with vsearch
         "results/04_UNIQUE/unique.fasta",
-        # vsearch primer stripped and quality filtered
+        # 3 | Additional quality filtering with vsearch
         "results/03_STRIPPED_FILTERED/stripped_filtered.fasta",
-        # vsearch merged --> pooled
+        # 2b| Concatenate merged read pairs
         "results/02_MERGED/all_merged.fastq",
-        # vsearch merged
+        # 2 | Merging of read pairs with vsearch
         expand("results/02_MERGED/{sample}_merged.fastq",
                sample=SAMPLES.index),
-        # QC before and after adapter removal and trimming
+        # 1 + 2b | QC before adapter removal and after merging
         expand("logs/fastqc/raw/{sample}_{pair}_fastqc.html",
                sample=SAMPLES.index, pair=PAIRS),
-        expand("logs/fastqc/trimmed/{sample}_trimmed_{pair}_fastqc.html",
-               sample=SAMPLES.index, pair=PAIRS),
+        expand("logs/fastqc/merged/{sample}_merged_fastqc.html",
+               sample=SAMPLES.index),
 
 ###############################################################################
 # needed rules

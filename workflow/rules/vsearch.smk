@@ -22,12 +22,13 @@ rule vsearch_merge_readpairs:
         "../envs/vsearch.yaml"
     params:
         relabel="{sample}.",
+        settings=MERGE,
     threads: 4
     log:
         "logs/vsearch_merge/{sample}.log",
     shell:
         """
-        vsearch --fastq_mergepairs {input.read1} --reverse {input.read2} --fastqout {output.merged} --relabel {params.relabel} 2> {log}
+        vsearch --fastq_mergepairs {input.read1} --reverse {input.read2} {params.settings} --fastqout {output.merged} --relabel {params.relabel} 2> {log}
         """
 
 rule concatenate_merged_readpairs:
@@ -53,12 +54,14 @@ rule vsearch_quality_filtering:
         mem_mb=8000,
     conda:
         "../envs/vsearch.yaml"
+    params:
+        settings=FILTERING,
     threads: 4
     log:
         "logs/vsearch_stripped_filtered/stripping_filtering.log",
     shell:
         """
-        vsearch --fastq_filter {input} --fastq_stripleft 20 --fastq_stripright 17 --fastq_maxee 1 --fastq_maxlen 400 --fastq_minlen 300 --fastaout {output} 2> {log} 
+        vsearch --fastq_filter {input} {params.settings} --fastaout {output} 2> {log} 
         """
 
 rule vsearch_unique:
@@ -80,7 +83,7 @@ rule vsearch_unique:
         """
 
 rule vsearch_otu:
-    # otu clustering and chimera removal
+    # otu clustering
     input:
         "results/04_UNIQUE/unique.fasta",
     output:
@@ -94,7 +97,7 @@ rule vsearch_otu:
         "logs/vsearch_otus/otus.log",
     shell:
         """
-        vsearch --cluster_size {input} --threads {threads} --id 0.8 -relabel OTU_ --centroids {output} 2> {log}
+        vsearch --cluster_size {input} --threads {threads} --id 0.8 -relabel OTU_--centroids {output} 2> {log}
         """
 
 rule vsearch_otu_table:
@@ -117,7 +120,7 @@ rule vsearch_otu_table:
         """
 
 rule vsearch_tax_summary:
-    # assign taxonomoy 
+    # assign taxonomoy
     input:
         otus="results/05_OTU_CLUSTERING/otus.fasta",
         otutab="results/05_OTU_CLUSTERING/otutab.txt",
@@ -136,6 +139,7 @@ rule vsearch_tax_summary:
         """
         vsearch -sintax {input.otus} -db {params.ref_db} -strand both -sintax_cutoff 0.5 -tabbedout {output.sintax} 2> {log}
         sed -i.tmp 's/#OTU ID//' {input.otutab}
+        rm -f {input.otutab}.tmp
         """
 
 rule clean_up_taxonomy:
@@ -149,4 +153,5 @@ rule clean_up_taxonomy:
     shell:
         """
         workflow/scripts/convert_usearch_tax.sh {input.raw_tax} {output.clean_tax} 2> {log}
+        rm -f {input.raw_tax}.tmp
         """

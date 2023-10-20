@@ -28,7 +28,8 @@ rule fastqc_raw:
 
 
 rule bbduk_trim:
-    # adapter removal and sequence trimming with bbduk
+    # adapter removal 
+    # trimming is omitted, happens during read pair merging
     input:
         read1=raw_data_dir + "/{sample}_" + PAIRS[0] + ".fastq.gz",
         read2=raw_data_dir + "/{sample}_" + PAIRS[1] + ".fastq.gz",
@@ -42,20 +43,21 @@ rule bbduk_trim:
         "../envs/bbmap.yaml"
     params:
         adapter=ADAPTER,
+        settings=BBDUK,
     threads: 4
     shell:
         """
-        bbduk.sh -Xmx8g in1={input.read1} in2={input.read2} out1={output.read1} out2={output.read2} stats={output.trim_stats} minlen=200 ktrim=r mink=10 ref={params.adapter} hdist=1
+        bbduk.sh -Xmx8g in1={input.read1} in2={input.read2} out1={output.read1} out2={output.read2} stats={output.trim_stats} ref={params.adapter} {params.settings}
         """
 
 
-rule fastqc_trim:
+rule fastqc_merged:
     # generate QC reports for the trimmed data
     input:
-        read="results/01_TRIMMED/{sample}_trimmed_{pair}.fastq.gz",
+        merged="results/02_MERGED/{sample}_merged.fastq",
     output:
-        qual="logs/fastqc/trimmed/{sample}_trimmed_{pair}_fastqc.html",
-        zip="logs/fastqc/trimmed/{sample}_trimmed_{pair}_fastqc.zip",
+        qual="logs/fastqc/merged/{sample}_merged_fastqc.html",
+        zip="logs/fastqc/merged/{sample}_merged_fastqc.zip",
     resources:
         mem_mb=2000,
     conda:
@@ -63,5 +65,5 @@ rule fastqc_trim:
     threads: 2
     shell:
         """
-        fastqc {input.read} -t {threads} -f fastq --outdir logs/fastqc/trimmed
+        fastqc {input.merged} -t {threads} -f fastq --outdir logs/fastqc/merged
         """
